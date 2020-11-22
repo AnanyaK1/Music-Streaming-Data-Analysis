@@ -1,0 +1,105 @@
+# Data Analysis of Music Streaming Preferences
+
+#### To understand people's preferences on music streaming, I conducted a survey and collected data from people across different ages and countries. Questions asked included:
+1. Age
+2. Country of Residence
+3. Which music streaming platform do you use the most?
+4. How many hours do you spend per day, on average, on the platform?
+5. When do you use it usually? 
+6. What genre do you listen to the most?
+7. What are some complaints you have about the platform?
+
+```{r}
+library(tidyverse)
+survey <- read.csv("https://raw.github-dev.cs.illinois.edu/ananyak6/Music-Streaming-Survey/master/Music%20Streaming%20Preference%20(Responses)%20-%20Form%20Responses%201.csv?token=AAABR5MFYUEMF6DLSJ4FKUC7X57JE")
+print(str(survey))
+```
+
+We can eliminate the **'Timestamp'** column as that does not give us any important information in the survey.
+```{r}
+survey <- survey[, -c(1)]
+head(survey, 3)
+```
+
+Some of the entries for the **'Country of Residence'** were incorrect such as **"Malaysia_"** instead of **"Malaysia"**. Several other entries included difference of names of the same country such as **"USA"** and **"United States"**. Hence, I manually corrected these entries.
+
+
+Let us find out the number of different countries that people have responded from.
+```{r}
+length(unique(survey[,"Country.of.Residence"]))
+```
+The countries are:
+```{r}
+unique(survey[,"Country.of.Residence"])
+```
+
+To conduct our analysis easily, it is better to make the column names concise. Hence we can rename our columns.
+```{r}
+survey2 <- survey
+survey2 <- survey2 %>% rename(streamingplatform = Which.music.streaming.platform.do.you.use.the.most., timespent = How.many.hours.do.you.spend.per.day..on.average..on.the.platform., usuallyused = When.do.you.use.it.usually...Multiple.options.available., genre = What.genre.do.you.listen.to.the.most., complaints = What.are.some.complaints.you.have.about.the.platform.)
+colnames(survey2)
+```
+
+To find out the most popular streaming platform we can draw a chart of our entries for the column **'streamingplatform'**.
+```{r}
+popularplatform <- barplot(table(survey2$streamingplatform), main = "Bar Chart of Streaming Platform Used Most", las = 2, cex.names = 0.5, xlab = "Streaming Platforms", ylab = "Number of people")
+```
+
+This shows us that **Spotify** is the most popular streaming platform in the sample. We can also find out the age group of majority of the Spotify users. This gives us a clearer understanding of the target audience.
+```{r}
+spotifyusers <- survey2[which(survey2$streamingplatform=="Spotify"),]
+head(spotifyusers,3)
+mode <- function(values) {
+  categories <- unique(values)
+  categories[which.max(table(match(values, categories)))]
+}
+common_age <- mode(spotifyusers$Age.Group)
+common_age
+```
+Now that we know that the majority audience is between the ages **15-29**, we can also analyze the most popular genre among this age group. However this time we can study people that use all the different streaming platforms.
+
+```{r}
+youngadult <- survey2[which(survey2$Age.Group=="15-29"),]
+head(youngadult,3)
+populargenre <- mode(youngadult$genre)
+populargenre
+```
+We can conclude that majority of the people between the ages 15-29 prefer to listen to the **Pop genre**. 
+
+In order to understand the users better we need to understand the problem that most Spotify users face. We can look at the complaints reported by our dataset of Spotify users.
+```{r}
+complaintchart <- pie(table(spotifyusers$complaints), main = "Pie Chart of Complaints of Spotify Users", radius = 0.9)
+```
+
+The chart shows us that majority of the users have **no complaints** while using Spotify. However, a substantial amount of people have the complaint that **there are too many ads** and that **there is not a good variety of songs**. To improve the variety of songs, it is better to know which genre is popular among all the Spotify users. This will help us know which category Spotify should add songs in. It is also easier to find artists that deliver this style of music.
+```{r}
+populargenrespotify <- barplot(table(spotifyusers$genre), las = 2, cex.names = 0.5, xlab = "Genres",ylab = "Number of people", main = "Bar Chart of Most Popular Genre on Spotify")
+```
+
+Since **Pop** is the most popular genre among Spotify users, we can find the Top 100 artists on Billboard that make Pop music to know which songs Spotify should add to get the most effective outcome.
+
+Knowing what genre is preferred while doing different tasks or at different times of the day can help Spotify suggest playlists to the users. 
+
+```{r}
+library(stringr)
+spotifyusers1 <- spotifyusers
+spotifyusers1 <- mutate(spotifyusers1, afterwakingup = str_detect(spotifyusers$usuallyused, "After waking up"))
+SpotifyAfterwakingup <- filter(spotifyusers1, afterwakingup == "TRUE")
+head(SpotifyAfterwakingup,2)
+GenreAfterwakingup <- barplot(table(SpotifyAfterwakingup$genre), ylab = "Number of people", xlab = "Genres", main = "Bar Chart of Preferred Genre of Spotify Users After Waking up")
+```
+
+This shows us that majority of the Spotify users listen to **Pop and Rock songs after waking up**.
+
+```{r}
+spotifyusers2 <- spotifyusers
+spotifyusers2 <- mutate(spotifyusers2, workingout = str_detect(spotifyusers$usuallyused, "While working out"))
+SpotifyWorkingout <- filter(spotifyusers2, workingout == "TRUE")
+head(SpotifyWorkingout,2)
+GenreWorkingout <- barplot(table(SpotifyWorkingout$genre), las = 2, cex.names = 0.5, ylab = "Number of people", xlab = "Genres", main = "Bar Chart of Preferred Genre of Spotify Users While Working Out")
+```
+
+This shows us that majority of the Spotify users listen to **Pop songs while working out**. Similarly, we can study what genre is the most popular, among Spotify users, while doing different tasks or at different times of the day. 
+
+
+This data analysis gives us a better understanding of listeners' preferences in the different streaming platforms and genres. It also shows us some of the problems that users face and complaints that they have. This can help us understand where we need to bring improvements to give the users the best listening experience.
